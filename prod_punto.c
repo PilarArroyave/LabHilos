@@ -1,23 +1,43 @@
 #include <stdlib.h>
 #include <stdio.h> 
 #include <string.h>
+#include <pthread.h>
+#include <math.h>
+
 
 void obtenerVector(int *vector, FILE *archivo);
 int contarElementos(FILE *archivo);
 int prodPunto(int *vector1, int *vector2, int tamano);
+int prodPuntoHilos(int *vector1, int *vector2, int tam, int numeroHilos);
+void *sumar(void *argv);
+
+
+typedef struct dato {
+   int  *vect1;
+   int  *vect2;
+   int  offset;
+   int  tam;
+   int idHilo;
+} data;  
+int result = 0;
+pthread_mutex_t banderaResult;
+
 
 int main(int argc, char *argv[]){
+    pthread_mutex_init(&banderaResult,NULL);
     // Comprobar que se haya ingresado el parámetro (PID)
     if (argc<=3){
-       printf("Debes ingresar los archivos de los vectores y la cantidad de hilos...\n");
+       printf("Debes ingresar los archivos de los vectores y la cantidad de hilos respectivamente...\n");
        return 1;
     }    
     char vector1[20], vector2[20]; 
+    int tamHilos = strtol(argv[3], NULL, 10);
     FILE *inFile1, *inFile2;
     strncpy(vector1, argv[1], strlen(argv[1]) + 1);
     strncpy(vector2, argv[2], strlen(argv[2]) + 1);
     inFile1 = fopen(vector1,"r");
     inFile2 = fopen(vector2,"r");
+
     // Comprobar que los archivos se han abierto
     if(inFile1 == NULL){
         printf("Error al abrir el archivo %s\n",vector1);
@@ -27,6 +47,7 @@ int main(int argc, char *argv[]){
         printf("Error al abrir el archivo %s\n",vector2);
         return -1;
     }
+    
     //Inician las operaciones para el producto punto    
     int tvec1, tvec2;
     tvec1 = contarElementos(inFile1);
@@ -37,15 +58,19 @@ int main(int argc, char *argv[]){
         printf("Los vectores tienen tamaños diferentes. No se puede realizar el producto punto entre ellos \n");
         return -1;
     }
-    int vec1[tvec1], vec2[tvec2], pp;
+    int vec1[tvec1], vec2[tvec2], pp, pp2;
     obtenerVector(vec1, inFile1);
     obtenerVector(vec2, inFile2);
+    //descomentar
     pp = prodPunto(vec1,vec2,tvec1);
+    pp2 = prodPuntoHilos(vec1,vec2,tvec1, tamHilos);
     printf("El producto punto de los vectores ingresados es: %d\n", pp);
+    printf("El producto punto de los vectores ingresados es: %d\n", pp2);
     fclose(inFile1);
     fclose(inFile2);
     //showInfoProccess(vector1, inFile1);     
 }
+
 
 int contarElementos(FILE *archivo){
     int cont = 0;
@@ -58,6 +83,7 @@ int contarElementos(FILE *archivo){
     }while(c != EOF);
     return cont + 1;
 }
+
 
 void obtenerVector(int *vector, FILE *archivo){
     char nro[5], ch[1], c;
@@ -76,10 +102,65 @@ void obtenerVector(int *vector, FILE *archivo){
     vector[cont] = atoi(nro);
 }   
 
+
 int prodPunto(int *vector1, int *vector2, int tamano){
     int resultado = 0;
     for(int i = 0; i < tamano; i++){
         resultado = resultado + (vector1[i]*vector2[i]);
     }
     return resultado;
+}
+
+
+int prodPuntoHilos(int *vector1, int *vector2, int tam, int numeroHilos){
+    result = 0;
+    //validamos que el numero de hilos es diferente de cero
+    if(numeroHilos <= 0) return -1;
+    if(numeroHilos > tam) {
+        numeroHilos = tam;
+        printf("como el numero de hilos es mayor que el numero de componentes del vector entonces se toman el número de componentes domo el número de hilos...\n");
+    }
+    pthread_t hilos[numeroHilos];
+
+    int subTamano = tam/numeroHilos;
+    int residuo = (int) ceil((double) (tam % numeroHilos) / (double) numeroHilos);
+    int acumulado = 0;
+    
+
+    for(int i = 0; i < numeroHilos; i++)
+    {
+        int tamVec = subTamano;
+        acumulado += tamVec;
+        //le suma la adicion al subtamaño
+        if((acumulado + (numeroHilos - (i+1)) * subTamano) < tam){
+            tamVec += residuo;
+            acumulado += residuo;
+        }
+        data d;
+        d.tam = tamVec;
+        d.offset = acumulado - tamVec;
+        d.vect1 = vector1;
+        d.vect2 = vector2;
+        d.idHilo = i;
+        pthread_create(&hilos[i], NULL, sumar, (void *)&d);
+        pthread_join(hilos[i],NULL);
+        
+    }
+    
+    return result;
+}
+
+
+void *sumar(void *args){
+    data *d = (data *) args;
+    for(int i = d->offset; i < (d->offset + d->tam); i++)
+    {
+        int producto = d->vect1[i] * d->vect2[i];
+        printf("id: %d       vec1: %d - vec2: %d - prod: %d\n",d->idHilo, d->vect1[i], d->vect2[i], producto);
+        pthread_mutex_lock(&banderaResult);
+        result += producto;
+        pthread_mutex_unlock(&banderaResult);
+    }
+    
+    //printf("hola \ttamaño: %d  -  offset: %d \n", d->tam, d->offset);
 }
