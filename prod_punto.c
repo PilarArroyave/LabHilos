@@ -3,15 +3,18 @@
 #include <string.h>
 #include <pthread.h>
 #include <math.h>
+#include <time.h>
+#include <sys/time.h>
 
-
+//declaracion de métodos
 void obtenerVector(int *vector, FILE *archivo);
 int contarElementos(FILE *archivo);
 int prodPunto(int *vector1, int *vector2, int tamano);
 int prodPuntoHilos(int *vector1, int *vector2, int tam, int numeroHilos);
-void *sumar(void *argv);
+void *multiplicar(void *argv);
+double timeval_diff(struct timeval *a, struct timeval *b);
 
-
+//declaracion de estructuras
 typedef struct dato {
    int  *vect1;
    int  *vect2;
@@ -19,6 +22,8 @@ typedef struct dato {
    int  tam;
    int idHilo;
 } data;  
+
+//declaracion de variables globles
 int result = 0;
 pthread_mutex_t banderaResult;
 
@@ -104,16 +109,22 @@ void obtenerVector(int *vector, FILE *archivo){
 
 
 int prodPunto(int *vector1, int *vector2, int tamano){
+    struct timeval t_ini, t_fin;
+    double secs;
     int resultado = 0;
+    gettimeofday(&t_ini, NULL);
     for(int i = 0; i < tamano; i++){
         resultado = resultado + (vector1[i]*vector2[i]);
     }
+    gettimeofday(&t_fin, NULL);
+    secs = timeval_diff(&t_fin, &t_ini);
+    printf("Tiempo de ejecucion sin hilos %.16g ms\n", secs * 1000.0);
     return resultado;
 }
 
 
 int prodPuntoHilos(int *vector1, int *vector2, int tam, int numeroHilos){
-    result = 0;
+    
     //validamos que el numero de hilos es diferente de cero
     if(numeroHilos <= 0) return -1;
     if(numeroHilos > tam) {
@@ -121,12 +132,15 @@ int prodPuntoHilos(int *vector1, int *vector2, int tam, int numeroHilos){
         printf("como el numero de hilos es mayor que el numero de componentes del vector entonces se toman el número de componentes domo el número de hilos...\n");
     }
     pthread_t hilos[numeroHilos];
-
+    struct timeval t_ini, t_fin;
+    double secs;
     int subTamano = tam/numeroHilos;
     int residuo = (int) ceil((double) (tam % numeroHilos) / (double) numeroHilos);
     int acumulado = 0;
     
+     result = 0;
 
+    gettimeofday(&t_ini, NULL);
     for(int i = 0; i < numeroHilos; i++)
     {
         int tamVec = subTamano;
@@ -142,16 +156,17 @@ int prodPuntoHilos(int *vector1, int *vector2, int tam, int numeroHilos){
         d.vect1 = vector1;
         d.vect2 = vector2;
         d.idHilo = i;
-        pthread_create(&hilos[i], NULL, sumar, (void *)&d);
+        pthread_create(&hilos[i], NULL, multiplicar, (void *)&d);
         pthread_join(hilos[i],NULL);
-        
     }
-    
+    gettimeofday(&t_fin, NULL);
+    secs = timeval_diff(&t_fin, &t_ini);
+    printf("Tiempo de ejecucion con %d hilos %.16g milliseconds\n", numeroHilos, secs * 1000.0);
     return result;
 }
 
 
-void *sumar(void *args){
+void *multiplicar(void *args){
     data *d = (data *) args;
     for(int i = d->offset; i < (d->offset + d->tam); i++)
     {
@@ -163,4 +178,12 @@ void *sumar(void *args){
     }
     
     //printf("hola \ttamaño: %d  -  offset: %d \n", d->tam, d->offset);
+}
+
+/* retorna "a - b" en segundos */
+double timeval_diff(struct timeval *a, struct timeval *b)
+{
+  return
+    (double)(a->tv_sec + (double)a->tv_usec/1000000) -
+    (double)(b->tv_sec + (double)b->tv_usec/1000000);
 }
