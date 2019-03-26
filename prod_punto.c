@@ -74,7 +74,11 @@ int main(int argc, char *argv[]){
         printf("Los vectores tienen tamaños diferentes. No se puede realizar el producto punto entre ellos \n");
         return -1;
     }
-    int vec1[tvec1], vec2[tvec2], pp, pp2;
+
+    int *vec1 = malloc(tvec1 * (sizeof(int)));
+    int *vec2 = malloc(tvec2 * (sizeof(int)));
+    int pp, pp2;
+    
     obtenerVector(vec1, inFile1);
     obtenerVector(vec2, inFile2);
     //descomentar
@@ -84,7 +88,7 @@ int main(int argc, char *argv[]){
     printf("El producto punto de los vectores ingresados es: %d\n", pp2);
     fclose(inFile1);
     fclose(inFile2);
-    //showInfoProccess(vector1, inFile1);    
+    //showInfoProccess(vector1, inFile1);   
 }
 
 
@@ -121,7 +125,7 @@ int prodPunto(int *vector1, int *vector2, int tamano){
     }
     gettimeofday(&t_fin, NULL);
     secs = timeval_diff(&t_fin, &t_ini);
-    printf("Tiempo de ejecucion sin hilos %.16g ms\n", secs * 1000.0);
+    printf("Tiempo de ejecucion sin hilos %f ms\n", secs * 1000.0);
     return resultado;
 }
 
@@ -164,7 +168,7 @@ int prodPuntoHilos(int *vector1, int *vector2, int tam, int numeroHilos){
     }
     gettimeofday(&t_fin, NULL);
     secs = timeval_diff(&t_fin, &t_ini);
-    printf("Tiempo de ejecucion con %d hilos %.16g ms\n", numeroHilos, secs * 1000.0);
+    printf("Tiempo de ejecucion con %d hilos %f ms\n", numeroHilos, secs * 1000.0);
     return result;
 }
 
