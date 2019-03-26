@@ -73,7 +73,7 @@ int main(int argc, char *argv[]){
     printf("El producto punto de los vectores ingresados es: %d\n", pp2);
     fclose(inFile1);
     fclose(inFile2);
-    //showInfoProccess(vector1, inFile1);     
+    //showInfoProccess(vector1, inFile1);    
 }
 
 
@@ -91,7 +91,7 @@ int contarElementos(FILE *archivo){
 
 
 void obtenerVector(int *vector, FILE *archivo){
-    char nro[5], ch[1], c;
+    char nro[20], ch[1], c;
     int cont = 0;
     nro[0] = '\0';
     while ((c = fgetc(archivo)) != EOF){
@@ -99,9 +99,11 @@ void obtenerVector(int *vector, FILE *archivo){
         if(c == '\n'){
             vector[cont] = atoi(nro);
             cont++;
+            printf("%d\n",atoi(nro));
             strcpy(nro, "");
         }else{
             strcat(nro, ch);
+            
         }
     }
     vector[cont] = atoi(nro);
@@ -168,15 +170,16 @@ int prodPuntoHilos(int *vector1, int *vector2, int tam, int numeroHilos){
 
 void *multiplicar(void *args){
     data *d = (data *) args;
+    int producto = 0;
     for(int i = d->offset; i < (d->offset + d->tam); i++)
     {
-        int producto = d->vect1[i] * d->vect2[i];
+        producto += d->vect1[i] * d->vect2[i];
         printf("id: %d       vec1: %d - vec2: %d - prod: %d\n",d->idHilo, d->vect1[i], d->vect2[i], producto);
-        pthread_mutex_lock(&banderaResult);
-        result += producto;
-        pthread_mutex_unlock(&banderaResult);
+        
     }
-    
+    pthread_mutex_lock(&banderaResult);
+        result += producto;
+    pthread_mutex_unlock(&banderaResult);
     //printf("hola \ttamaño: %d  -  offset: %d \n", d->tam, d->offset);
 }
 
