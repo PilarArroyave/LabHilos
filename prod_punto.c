@@ -34,9 +34,20 @@ int main(int argc, char *argv[]){
     if (argc<=3){
        printf("Debes ingresar los archivos de los vectores y la cantidad de hilos respectivamente...\n");
        return 1;
-    }    
+    }
+    
     char vector1[20], vector2[20]; 
     int tamHilos = strtol(argv[3], NULL, 10);
+
+    if(tamHilos == 2 || tamHilos == 4 || tamHilos == 8 || tamHilos == 16){
+
+    }
+    else
+    {
+        printf("Error en el tamaño de los hilos debe ser alguno de estos valores [ 2, 4, 8, 16 ]\n");
+        return 1;
+    }
+    
     FILE *inFile1, *inFile2;
     strncpy(vector1, argv[1], strlen(argv[1]) + 1);
     strncpy(vector2, argv[2], strlen(argv[2]) + 1);
@@ -86,27 +97,17 @@ int contarElementos(FILE *archivo){
             cont++;
         }
     }while(c != EOF);
-    return cont + 1;
+    return cont;
 }
 
 
 void obtenerVector(int *vector, FILE *archivo){
     char nro[20], ch[1], c;
     int cont = 0;
-    nro[0] = '\0';
-    while ((c = fgetc(archivo)) != EOF){
-        ch[0]=c;
-        if(c == '\n'){
-            vector[cont] = atoi(nro);
-            cont++;
-            printf("%d\n",atoi(nro));
-            strcpy(nro, "");
-        }else{
-            strcat(nro, ch);
-            
-        }
-    }
-    vector[cont] = atoi(nro);
+    while((fgets(nro, 201, archivo)!=NULL)) {
+      		vector[cont]=atoi(nro);	
+      		cont++;
+   	}
 }   
 
 
@@ -163,7 +164,7 @@ int prodPuntoHilos(int *vector1, int *vector2, int tam, int numeroHilos){
     }
     gettimeofday(&t_fin, NULL);
     secs = timeval_diff(&t_fin, &t_ini);
-    printf("Tiempo de ejecucion con %d hilos %.16g milliseconds\n", numeroHilos, secs * 1000.0);
+    printf("Tiempo de ejecucion con %d hilos %.16g ms\n", numeroHilos, secs * 1000.0);
     return result;
 }
 
@@ -174,7 +175,7 @@ void *multiplicar(void *args){
     for(int i = d->offset; i < (d->offset + d->tam); i++)
     {
         producto += d->vect1[i] * d->vect2[i];
-        printf("id: %d       vec1: %d - vec2: %d - prod: %d\n",d->idHilo, d->vect1[i], d->vect2[i], producto);
+        //printf("id: %d       vec1: %d - vec2: %d - prod: %d\n",d->idHilo, d->vect1[i], d->vect2[i], producto);
         
     }
     pthread_mutex_lock(&banderaResult);
